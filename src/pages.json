@@ -1,0 +1,75 @@
+{
+  // 配置组件的自动按需导入
+  "easycom": {
+    // 自动扫描/加载
+    "autoscan": true,
+    "custom": {
+      // uni-ui 规则如下配置
+      "^uni-(.*)": "@dcloudio/uni-ui/lib/uni-$1/uni-$1.vue",
+      // 全局注册 components 目录下所有组件
+      "^bit-(.*)": "@/components/bit-$1/bit-$1.vue"
+    }
+  },
+  "pages": [
+    //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
+    {
+      "path": "pages/index/index"
+    },
+    {
+      "path": "pages/message/message"
+    },
+    {
+      "path": "pages/mine/mine"
+    },
+    {
+      "path": "pages/login/login"
+    },
+    {
+      "path": "pages/edit/edit"
+    },
+    {
+      "path": "pages/city-select/city-select"
+    },
+    {
+      "path": "pages/detail/detail"
+    },
+    {
+      "path": "pages/chat/chat"
+    },
+    {
+      "path": "pages/list/list"
+    }
+  ],
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#0FA1FE",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "height": "54px",
+    "fontSize": "10px",
+    "iconWidth": "22px",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "iconPath": "static/images/tabbar/index-default.png",
+        "selectedIconPath": "static/images/tabbar/index-selected.png",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/message/message",
+        "iconPath": "static/images/tabbar/message-default.png",
+        "selectedIconPath": "static/images/tabbar/message-selected.png",
+        "text": "消息"
+      },
+      {
+        "pagePath": "pages/mine/mine",
+        "iconPath": "static/images/tabbar/mine-default.png",
+        "selectedIconPath": "static/images/tabbar/mine-selected.png",
+        "text": "我的"
+      }
+    ]
+  },
+  "globalStyle": {
+    "navigationStyle": "custom"
+  }
+}
