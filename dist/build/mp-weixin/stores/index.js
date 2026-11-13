@@ -1,0 +1,1 @@
+"use strict";const e=require("../common/vendor.js");require("../utils/request.js"),require("../utils/websocket.js");const t=e.createPinia();t.use(e.createPersistedState({storage:{setItem:e.index.setStorageSync,getItem:e.index.getStorageSync}})),exports.pinia=t;

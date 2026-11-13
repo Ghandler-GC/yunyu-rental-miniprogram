@@ -1,0 +1,1 @@
+"use strict";const e=require("../common/vendor.js");require("../stores/index.js");const s=require("../stores/modules/session.js"),o=()=>{e.index.removeTabBarBadge({index:1,fail:()=>{}})};exports.removeRedDot=o,exports.setRedDot=()=>{const t=s.useSessionStore(),{notVisitedCount:r}=t;r>0?e.index.setTabBarBadge({index:1,text:String(r),fail:()=>{}}):o()};

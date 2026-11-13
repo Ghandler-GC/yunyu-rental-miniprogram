@@ -1,0 +1,1 @@
+"use strict";const e=require("../../common/vendor.js"),n={};if(!Array){e.resolveComponent("bit-icon")()}Math;const t=e._export_sfc(n,[["render",function(n,t){return{a:e.p({name:"/static/images/web/common/quesheng.png",width:"588",height:"504"})}}]]);wx.createComponent(t);

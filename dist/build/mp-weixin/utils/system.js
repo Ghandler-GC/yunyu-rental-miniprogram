@@ -1,0 +1,1 @@
+"use strict";const e=require("../common/vendor.js");exports.getOsName=()=>new Promise(((s,o)=>{e.index.getSystemInfo({success:e=>{s(e.osName)},fail:e=>{o(e)}})})),exports.safeBottomDistance=()=>e.index.getWindowInfo().safeAreaInsets.bottom;

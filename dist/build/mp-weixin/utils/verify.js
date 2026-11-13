@@ -1,0 +1,1 @@
+"use strict";const o=require("./toast.js"),s=o=>""===o||null==o,e=o=>s=>o.test(s),t=e(/^1[3-9]\d{9}$/),n=e(/^\d{6}$/);exports.verifyCode=e=>s(e)?(o.showNoneIconToast("验证码不能为空"),!1):!!n(e)||(o.showNoneIconToast("验证码格式不对"),!1),exports.verifyPhone=e=>s(e)?(o.showNoneIconToast("手机号不能为空"),!1):!!t(e)||(o.showNoneIconToast("手机号格式不对"),!1);

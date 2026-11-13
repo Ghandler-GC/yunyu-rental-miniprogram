@@ -1,0 +1,1 @@
+"use strict";exports.positionMap={east:"东",west:"西",south:"南",north:"北"},exports.tagMap={near_subway:"ditie",lift:"dianti",renovation:"jingzhuang",central_heating:"gongnuan",civil_water_elec:"shuidian"};

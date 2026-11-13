@@ -1,0 +1,1 @@
+"use strict";const e=require("../common/vendor.js");exports.authorize=s=>new Promise(((i,t)=>{e.index.authorize({scope:"scope."+s,success:()=>{i()},fail:()=>{t(),e.index.openSetting()}})})),exports.isAuthorized=s=>new Promise(((i,t)=>{e.index.getSetting({success:e=>{i(e.authSetting["scope."+s])},fail:()=>{t()}})}));

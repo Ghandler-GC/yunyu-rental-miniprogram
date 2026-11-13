@@ -70,6 +70,8 @@ npm run build:mp-weixin
 
 产物位于 `dist/build/mp-weixin`。
 
+> 仓库中已提交 `dist/build/mp-weixin` 构建产物，可直接用微信开发者工具导入，无需在本地构建；修改源码后再执行上述命令重新生成。
+
 ### 4. 用微信开发者工具导入
 
 1. 打开微信开发者工具，选择「导入项目」。

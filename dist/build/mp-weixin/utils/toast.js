@@ -1,0 +1,1 @@
+"use strict";const o=require("../common/vendor.js");exports.showErrorToast=s=>{o.index.showToast({title:s,icon:"error"})},exports.showNoneIconToast=s=>{o.index.showToast({title:s,icon:"none"})},exports.showSuccessToast=s=>{o.index.showToast({title:s,icon:"success"})};
