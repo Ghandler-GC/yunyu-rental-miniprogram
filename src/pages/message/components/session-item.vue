@@ -20,8 +20,17 @@
     try {
       // 请求最新的会话列表
       await sessionStore.getSessionListAction()
+      // 优先使用刷新后的会话数据（收到新会话消息时，本地会话项可能缺少 otherUser）
+      const latest =
+        sessionStore.sessionList.find(
+          (item) => item.sessionId === props.session.sessionId
+        ) || props.session
       // 解构
-      const { sessionId, lastMessageVO, otherUser } = props.session
+      const { sessionId, lastMessageVO, otherUser } = latest
+      if (!otherUser) {
+        console.error('会话缺少对方用户信息', latest)
+        return
+      }
 
       // 生成一个临时聊天对象
       const tempOtherUser = {
@@ -57,7 +66,7 @@
       class="left"
     >
       <bit-icon
-        :name="props.session.otherUser.avatar"
+        :name="props.session.otherUser?.avatar || ''"
         size="80"
         round
       />
@@ -72,7 +81,7 @@
     >
       <view class="up">
         <text class="nickName">
-          {{ props.session.otherUser.nickName }}
+          {{ props.session.otherUser?.nickName || '未知用户' }}
         </text>
         <text class="sendTime">
           {{ formatTime(props.session.lastSessionTime, 'MM/DD') }}

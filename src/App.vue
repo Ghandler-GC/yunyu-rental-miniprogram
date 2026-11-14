@@ -1,5 +1,5 @@
 <script setup>
-  import { onLaunch, onShow, onHide } from '@dcloudio/uni-app'
+  import { onLaunch, onShow } from '@dcloudio/uni-app'
   import {
     useLocationStore,
     useChatStore,
@@ -34,14 +34,8 @@
       // 调用初始化录音管理器方法
       chatStore.initRecorder()
 
-      // 监听/订阅登录成功事件
-      uni.$on(UniAppEvent.LoginSuccess, () => {
-        // 监听接收消息事件
-        console.log(
-          'App中监听到了登录成功, 需要更新会话列表，并且设置红点'
-        )
-        uni.$on(UniAppEvent.ReceiveMsg, updateSessionList)
-      })
+      // 监听/订阅收到消息事件（只在应用启动时注册一次，避免重复注册）
+      uni.$on(UniAppEvent.ReceiveMsg, updateSessionList)
     } catch (e) {}
   })
 
@@ -58,25 +52,27 @@
 
   // 小程序应用在前台运行的时候会自动执行 onShow 钩子 1次
   onShow(async () => {
-    try {
-      // 登录了
-      if (userStore.token) {
+    // 登录了才需要拉取用户信息、会话列表并建立 websocket 连接
+    if (userStore.token) {
+      // 用户信息可能因为微信登录未成功获取或本地缓存丢失而不完整，
+      // 这里做一次兜底刷新，保证“我的”页信息完整、聊天消息能带上发送人
+      if (!userStore.userInfo || !userStore.userInfo.userId) {
+        try {
+          await userStore.getUserInfoAction()
+        } catch (e) {
+          console.log(e)
+        }
+      }
+      try {
         // 请求会话列表
         await sessionStore.getSessionListAction()
         // 设置红点(App.vue中也可以设置红点)
         setRedDot()
-        // 监听/订阅 收到消息事件
-        uni.$on(UniAppEvent.ReceiveMsg, updateSessionList)
-      }
-    } catch (e) {}
+      } catch (e) {}
+      // 当小程序在前台运行的时候，主动建立 websocket 连接
+      socket.initSocketConnect()
+    }
     console.log('App Show')
-    // 当小程序在前台运行的时候，主动建立 websocket 连接
-    socket.initSocketConnect()
-  })
-
-  onHide(() => {
-    console.log('App Hide')
-    uni.$off(UniAppEvent.ReceiveMsg, updateSessionList)
   })
 </script>
 

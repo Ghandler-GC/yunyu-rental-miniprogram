@@ -16,5 +16,7 @@ export const tagMap = {
   lift: 'dianti',
   renovation: 'jingzhuang',
   central_heating: 'gongnuan',
-  civil_water_elec: 'shuidian'
+  civil_water_elec: 'shuidian',
+  // 种子数据中的第 6 个标签，复用“配置”图标，避免详情页图标空白
+  cook: 'peizhi'
 }

@@ -6,19 +6,30 @@ class WebSocket {
   constructor(options = {}) {
     this.options = options
     this.socketTask = null
-    this.isOpenSocket = false //避免重复连接
+    this.isOpenSocket = false // 是否已连接
+    this.isConnecting = false // 是否正在连接（防止重复创建连接）
     this.heartbeatInterval = options.heartbeatInterval || 10000 // 心跳间隔，默认为10秒
     this.reconnectInterval = options.reconnectInterval || 5000 // 重连间隔，默认为5秒
     this.reconnectAttempts = options.reconnectAttempts || Infinity // 最大重连次数，默认为无限次
-    this.needbeat = options.needbeat || true
+    this.needbeat = options.needbeat !== false
     this.reconnectCount = 0
     this.isNormalClosed = false
+    // 发送消息时等待连接建立的最长时间
+    this.sendTimeout = options.sendTimeout || 10000
+    this.reconnectTimer = null
   }
 
   // 创建 websocket 连接
   initSocketConnect() {
     const userStore = useUserStore()
+    // 未登录不建立连接
     if (!userStore.token) return
+    // 已经连接或正在连接时，直接复用，避免重复创建连接
+    // （微信小程序有最大并发连接数限制，重复创建会导致连接失败）
+    if (this.isOpenSocket || this.isConnecting) return
+
+    this.isConnecting = true
+    this.isNormalClosed = false
     this.socketTask = uni.connectSocket({
       url: WS_URL,
       header: {
@@ -28,19 +39,32 @@ class WebSocket {
         console.log(
           '============WebSocket正在连接中...==============='
         )
-        return this.socketTask
       },
       fail: (err) => {
         console.error('WebSocket连接失败', err)
+        this.isConnecting = false
+        this.socketTask = null
         this.reconnect()
       }
     })
+    if (!this.socketTask) {
+      // 部分平台在回调模式下可能拿不到 socketTask，做兜底处理
+      this.isConnecting = false
+      this.reconnect()
+      return
+    }
     // 监听WebSocket打开事件
     this.socketTask.onOpen(() => {
       console.log(
         '==============WebSocket连接成功==================='
       )
       this.isOpenSocket = true
+      this.isConnecting = false
+      this.reconnectCount = 0
+      if (this.reconnectTimer) {
+        clearTimeout(this.reconnectTimer)
+        this.reconnectTimer = null
+      }
       // 监听接收消息
       this.socketTask.onMessage((res) => {
         // 反序列化
@@ -72,6 +96,8 @@ class WebSocket {
     // 监听WebSocket关闭事件
     this.socketTask.onClose((res) => {
       this.isOpenSocket = false
+      this.isConnecting = false
+      this.socketTask = null
       console.log(
         '==============WebSocket连接已关闭=================',
         res
@@ -87,6 +113,8 @@ class WebSocket {
         '===============WebSocket发生错误====================',
         err
       )
+      this.isOpenSocket = false
+      this.isConnecting = false
       if (
         [
           'createSocketTask:fail wcwss exceed max concurrent count',
@@ -104,22 +132,35 @@ class WebSocket {
 
   // 发送消息
   send({ type, data }) {
+    // 序列化要发送的内容（保持与服务端约定的协议格式）
+    const payload = JSON.stringify({ type, data })
     return new Promise((resolve, reject) => {
-      this.socketTask.send({
-        // 序列化
-        data: JSON.stringify({
-          type,
-          data
-        }),
-        success: () => {
-          resolve()
-          console.log('消息发送成功')
-        },
-        fail: (err) => {
-          console.error(data, ' 消息发送失败', err)
-          reject(err)
+      const startedAt = Date.now()
+      // 尝试发送：如果连接还没建立，会等待一段时间（最多 sendTimeout）
+      const trySend = () => {
+        if (this.isOpenSocket && this.socketTask) {
+          this.socketTask.send({
+            data: payload,
+            success: () => {
+              resolve()
+              console.log('消息发送成功')
+            },
+            fail: (err) => {
+              console.error('消息发送失败', err)
+              reject(err)
+            }
+          })
+          return
         }
-      })
+        if (Date.now() - startedAt >= this.sendTimeout) {
+          reject(new Error('WebSocket 连接超时，请稍后重试'))
+          return
+        }
+        // 主动发起连接（内部已做去重），并轮询等待连接建立
+        this.initSocketConnect()
+        setTimeout(trySend, 200)
+      }
+      trySend()
     })
   }
 
@@ -139,23 +180,40 @@ class WebSocket {
     this.send({
       type: websocketMsgType.heart_beat,
       data: 'ping' // 心跳消息内容为 'ping'
-    })
+    }).catch(() => {})
   }
   // 重连逻辑
   reconnect() {
+    // 已经连接、正在连接或有重连任务时，不重复触发
+    if (
+      this.isOpenSocket ||
+      this.isConnecting ||
+      this.reconnectTimer
+    ) {
+      return
+    }
     if (this.reconnectCount < this.reconnectAttempts) {
-      setTimeout(() => {
-        this.initSocketConnect()
+      this.reconnectTimer = setTimeout(() => {
+        this.reconnectTimer = null
         this.reconnectCount++
+        this.initSocketConnect()
       }, this.reconnectInterval)
     }
   }
   // 关闭连接
   close() {
     this.isOpenSocket = false
+    this.isConnecting = false
     this.isNormalClosed = true
-    if (this.socketTask && this.socketTask.readyState !== '') {
-      this.socketTask.close({
+    clearInterval(this.heartbeatTimer)
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer)
+      this.reconnectTimer = null
+    }
+    if (this.socketTask) {
+      const task = this.socketTask
+      this.socketTask = null
+      task.close({
         success: () => {
           console.log('WebSocket连接已关闭/已断开')
         },
@@ -163,7 +221,6 @@ class WebSocket {
           console.error('WS关闭失败->', err)
         }
       })
-      clearInterval(this.heartbeatTimer)
     }
   }
 }

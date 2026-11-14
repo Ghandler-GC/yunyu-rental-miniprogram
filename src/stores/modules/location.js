@@ -77,7 +77,10 @@ const actions = {
             })
         })
         .catch((error) => {
-          reject(error)
+          // 定位失败（用户拒绝授权、开发者工具未模拟位置等）时使用默认城市，
+          // 保证首页城市名称、房源列表仍能正常展示
+          this.setLocationAction(defaultLocationInfo)
+          resolve()
         })
     })
   }

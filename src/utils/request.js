@@ -69,7 +69,9 @@ const request = ({ method = 'GET', url, header = {}, data = {} }) => {
             }
           })
           const userStore = useUserStore()
-          if ([401000, 401001, 401002, 401003].includes(code)) {
+          if (
+            [401000, 401001, 401002, 401003, 401004].includes(code)
+          ) {
             // token过期
             // 清空token和用户信息
             await userStore.logoutAction()

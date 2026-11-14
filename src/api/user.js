@@ -42,6 +42,20 @@ export const loginByWxApi = (code) => {
 }
 
 /**
+ * 本地开发用：微信登录拿不到 code 时的模拟登录
+ * 需要后端 Nacos 配置 wx.applet.mock-enabled=true
+ */
+export const loginByWxMockApi = (openId) => {
+  return request({
+    method: 'POST',
+    url: '/portal/user/login/wechat/mock',
+    data: {
+      openId
+    }
+  })
+}
+
+/**
  * 获取用户信息
  */
 export const getUserInfoApi = () => {

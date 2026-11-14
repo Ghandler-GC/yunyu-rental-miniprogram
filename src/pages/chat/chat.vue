@@ -28,6 +28,7 @@
   } from '@/constants/chat'
   import socket from '@/utils/websocket'
   import { uploadFile2OSS } from '@/utils/file'
+  import { showNoneIconToast } from '@/utils/toast'
 
   import {
     putSessionBatchVisitedApi,
@@ -378,7 +379,10 @@
       }
       // 滚动到聊天底部
       scrollToBottom()
-    } catch (e) {}
+    } catch (e) {
+      console.error('聊天页初始化失败', e)
+      showNoneIconToast(e.message || '聊天初始化失败，请稍后重试')
+    }
   })
 
   // 接收消息
@@ -444,6 +448,24 @@
    * @param content 消息内容
    */
   const sendMsg = async (type, content) => {
+    // 发送消息依赖当前登录用户 id 和聊天对象 id，先做兜底校验
+    if (!userStore.userInfo || !userStore.userInfo.userId) {
+      try {
+        await userStore.getUserInfoAction()
+      } catch (e) {
+        showNoneIconToast('用户信息获取失败，请重新登录')
+        return
+      }
+    }
+    if (!chatStore.fangDong || !chatStore.fangDong.id) {
+      showNoneIconToast('聊天对象信息缺失，请返回重试')
+      return
+    }
+    // 会话还没创建成功时不要发送，否则消息会在本地显示但服务端丢弃
+    if (!sessionId) {
+      showNoneIconToast('会话创建失败，请返回重试')
+      return
+    }
     // 消息对象
     const message = {
       type,
@@ -490,7 +512,10 @@
       if (type === msgType.text) {
         msgText.value = ''
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error('消息发送失败', e)
+      showNoneIconToast(e.message || '消息发送失败，请稍后重试')
+    }
   }
 </script>
 

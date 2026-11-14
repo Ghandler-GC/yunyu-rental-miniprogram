@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import {
   loginByCodeApi,
   loginByWxApi,
+  loginByWxMockApi,
   getUserInfoApi
 } from '@/api/user'
 
@@ -42,6 +43,19 @@ const actions = {
         // 发请求（调接口）
         const resp = await loginByWxApi(code)
         // 赋值token
+        this.token = resp.accessToken
+        resolve()
+      } catch (e) {
+        reject(e)
+      }
+    })
+  },
+
+  // 本地开发用：模拟微信登录action函数
+  loginByWxMockAction(openId) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const resp = await loginByWxMockApi(openId)
         this.token = resp.accessToken
         resolve()
       } catch (e) {

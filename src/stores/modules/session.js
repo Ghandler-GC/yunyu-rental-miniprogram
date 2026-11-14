@@ -19,6 +19,7 @@ const actions = {
           this.sessionList = sessionList.map((session) => {
             const { lastMessageVO } = session
             if (
+              lastMessageVO &&
               [msgType.card, msgType.voice].includes(
                 lastMessageVO.type
               )
@@ -82,7 +83,7 @@ const actions = {
         lastSessionTime: message.createTime,
         notVisitedCount: 1,
         otherUser: message.otherUser,
-        sessionId
+        sessionId: message.sessionId
       })
     }
   }

@@ -122,11 +122,11 @@
     loginFn()
       // 成功
       .then(async () => {
+        // 登录成功的提示
+        showSuccessToast('登录成功')
+        // 主动建立 websocket 连接
+        socket.initSocketConnect()
         try {
-          // 登录成功的提示
-          showSuccessToast('登录成功')
-          // 主动建立 websocket 连接
-          socket.initSocketConnect()
           // 获取会话列表
           await sessionStore.getSessionListAction()
           // 通知(对方)登录成功
@@ -134,13 +134,13 @@
         } catch (e) {
           console.log(e)
         }
-        // 获取用户信息
-        userStore
-          .getUserInfoAction()
-          .then(() => {})
-          .catch((e) => {
-            showNoneIconToast(e.message)
-          })
+        // 获取用户信息：聊天发送消息依赖 userInfo.userId，必须等拿到再跳转，
+        // 否则首次进入聊天页时会出现发送失败、个人信息显示不全的问题
+        try {
+          await userStore.getUserInfoAction()
+        } catch (e) {
+          showNoneIconToast(e.message)
+        }
         // 页面跳转: 目前统一跳转至首页（今后会有很多跳转细节，ToDo)
         setTimeout(() => {
           // 说明携带了要回跳路由路径，此时需要跳转至 redirectUrl 的路径
@@ -217,27 +217,76 @@
     })
   }
 
+  // 获取（或生成本地保存的）模拟微信 openId
+  const getMockWxOpenId = () => {
+    const key = 'DEV_MOCK_WX_OPENID'
+    let openId = uni.getStorageSync(key)
+    if (!openId) {
+      openId = `dev_mock_${Date.now()}_${Math.random()
+        .toString(36)
+        .slice(2, 8)}`
+      uni.setStorageSync(key, openId)
+    }
+    return openId
+  }
+
   // 微信一键登录
   const onLoginByWx = () => {
     onLogin(() => {
       return new Promise((resolve, reject) => {
         wxLoading.value = true
+
+        // 本地开发兜底：真实微信登录失败时，尝试后端的模拟登录接口。
+        // 该接口受 Nacos 配置 wx.applet.mock-enabled 控制，生产环境默认关闭，
+        // 关闭时会直接失败并返回真实微信登录错误。
+        const fallbackToMock = (originalError) => {
+          userStore
+            .loginByWxMockAction(getMockWxOpenId())
+            .then(() => {
+              showNoneIconToast(
+                '未获取到微信登录凭证，已使用本地模拟登录（仅开发环境）'
+              )
+              resolve()
+            })
+            .catch(() => {
+              reject(originalError)
+            })
+            .finally(() => {
+              wxLoading.value = false
+            })
+        }
+
         // 获取微信登录凭证 code
         uni.login({
           provider: 'weixin',
           success: (res) => {
+            if (!res.code) {
+              fallbackToMock(
+                new Error(
+                  '微信登录失败：未获取到登录凭证，且本地模拟登录未开启，请使用手机号验证码登录'
+                )
+              )
+              return
+            }
             // 把 wx.login 返回的 code 交给后端，由后端使用 AppSecret 换取 openid
             userStore
               .loginByWxAction(res.code)
               .then(resolve)
-              .catch(reject)
+              .catch((error) => {
+                // 真实微信登录失败时，尝试本地模拟兜底
+                fallbackToMock(error)
+              })
               .finally(() => {
                 wxLoading.value = false
               })
           },
           fail: (error) => {
-            reject(new Error(error.errMsg))
-            wxLoading.value = false
+            const errMsg = (error && error.errMsg) || ''
+            // 微信登录依赖开发者工具/微信客户端的登录态，以及 AppID 的开发者权限
+            const message = /token|login|登录/i.test(errMsg)
+              ? '微信登录失败：请先登录微信开发者工具，并确认当前账号拥有该小程序 AppID 的开发者权限'
+              : `微信登录失败：${errMsg || '请稍后重试'}`
+            fallbackToMock(new Error(message))
           }
         })
       })
